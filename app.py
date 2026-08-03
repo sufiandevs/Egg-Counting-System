@@ -41,14 +41,14 @@ st.markdown("""
 }
 
 .main .block-container {
-    background: rgba(232, 240, 248, 0.98);  /* CHANGED: Light blue-gray, easy on eyes */
+    background: rgba(232, 240, 248, 0.98);
     border-radius: 24px;
     padding: 2.5rem;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     backdrop-filter: blur(12px);
     margin-top: 1.5rem;
     border: 1px solid rgba(255,255,255,0.2);
-    color: #1a1a2e;  /* Dark text for readability */
+    color: #1a1a2e;
 }
 
 .title-text {
@@ -252,7 +252,6 @@ else:  # VIDEO
 
                 prog = st.progress(0)
                 status = st.empty()
-                preview = st.empty()
 
                 idx = 0
                 while cap.isOpened():
@@ -260,7 +259,6 @@ else:  # VIDEO
                     if not ret:
                         break
 
-                    # Ensure frame is valid numpy array
                     if frame is None or frame.size == 0:
                         continue
 
@@ -338,14 +336,10 @@ else:  # VIDEO
                                 cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 0, 255), 4)
                     out.write(frame)
 
-                    # FIX: Safe preview update with explicit copy
+                    # SAFE: Only update progress bar and text. NO st.image() in loop.
                     if idx % 5 == 0:
                         prog.progress(min((idx + 1) / total, 1.0))
-                        status.text(f"Frame {idx}/{total}  |  🥚 Eggs Counted: {total_count}")
-                        # Explicit uint8 contiguous copy for Streamlit
-                        preview_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        preview_frame = np.ascontiguousarray(preview_frame, dtype=np.uint8)
-                        preview.image(preview_frame, caption=f"Live Count: {total_count}", use_container_width=True)
+                        status.markdown(f"**Frame:** `{idx}/{total}` &nbsp;&nbsp;|&nbsp;&nbsp; 🥚 **Eggs Counted:** `{total_count}`")
                     idx += 1
 
                 cap.release()
