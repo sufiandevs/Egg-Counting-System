@@ -10,17 +10,13 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
 # =================== CONFIG ===================
-# PASTE YOUR GOOGLE DRIVE FILE ID HERE
-# Example: If your share link is https://drive.google.com/file/d/1ABC123xyz/view
-# Then DRIVE_FILE_ID = "1ABC123xyz"
-DRIVE_FILE_ID = "1xu2z6l7Ey_93ou4CzACfJkMvCMeKGHNg"  # <-- CHANGE THIS TO YOUR REAL ID
-
-MODEL_PATH = "maskrcnn_egg_model.pth"  # Local fallback filename
+DRIVE_FILE_ID = "1xu2z6l7Ey_93ou4CzACfJkMvCMeKGHNg"  # <-- PASTE YOUR REAL GOOGLE DRIVE FILE ID HERE
+MODEL_PATH = "maskrcnn_egg_model.pth"
 # ==============================================
 
 st.set_page_config(page_title="AI Egg Counting", page_icon="🥚", layout="wide")
 
-# =================== CSS ANIMATIONS ===================
+# =================== CSS ===================
 st.markdown("""
 <style>
 @keyframes gradient {
@@ -45,13 +41,14 @@ st.markdown("""
 }
 
 .main .block-container {
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(232, 240, 248, 0.98);  /* CHANGED: Light blue-gray, easy on eyes */
     border-radius: 24px;
     padding: 2.5rem;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     backdrop-filter: blur(12px);
     margin-top: 1.5rem;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #1a1a2e;  /* Dark text for readability */
 }
 
 .title-text {
@@ -69,7 +66,7 @@ st.markdown("""
 
 .subtitle-text {
     text-align: center;
-    color: #666;
+    color: #4a5568;
     font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 2.5rem;
@@ -126,7 +123,6 @@ def load_model():
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
     model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask, 256, num_classes)
 
-    # If local model exists, use it. Otherwise download from Google Drive.
     if os.path.exists(MODEL_PATH):
         with st.spinner("📂 Loading local model..."):
             model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
@@ -264,6 +260,10 @@ else:  # VIDEO
                     if not ret:
                         break
 
+                    # Ensure frame is valid numpy array
+                    if frame is None or frame.size == 0:
+                        continue
+
                     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     oh, ow = img_rgb.shape[:2]
 
@@ -338,11 +338,14 @@ else:  # VIDEO
                                 cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 0, 255), 4)
                     out.write(frame)
 
+                    # FIX: Safe preview update with explicit copy
                     if idx % 5 == 0:
                         prog.progress(min((idx + 1) / total, 1.0))
                         status.text(f"Frame {idx}/{total}  |  🥚 Eggs Counted: {total_count}")
-                        preview.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                      caption=f"Live Count: {total_count}", use_container_width=True)
+                        # Explicit uint8 contiguous copy for Streamlit
+                        preview_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        preview_frame = np.ascontiguousarray(preview_frame, dtype=np.uint8)
+                        preview.image(preview_frame, caption=f"Live Count: {total_count}", use_container_width=True)
                     idx += 1
 
                 cap.release()
